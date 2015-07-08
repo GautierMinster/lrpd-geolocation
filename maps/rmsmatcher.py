@@ -601,9 +601,11 @@ class RMSMatcher(object):
         if type(model) is dict:
             model = model[refname]
 
+        img_shape = img_test.shape if img_test is not None else None
+
         out = self._draw_maps(
-            self.refs[self.indices[refname]], rmsm_test, box=True, sw=sw, sc=sc,
-            bc=lc, bgc=bgc
+            self.refs[self.indices[refname]], rmsm_test, shape2=img_shape,
+            box=True, sw=sw, sc=sc, bc=lc, bgc=bgc
         )
         h_ref, w_ref = self.refs[self.indices[refname]].dmap_origin.img.shape
         h_test, w_test = rmsm_test.dmap_origin.img.shape
@@ -661,13 +663,15 @@ class RMSMatcher(object):
 
         return out
 
-    def _draw_maps(self, rmsm1, rmsm2, box=True, sw=1, bw=2, sc=(150,150,150),
-            bc=(0,0,255), bgc=(255,255,255)):
+    def _draw_maps(self, rmsm1, rmsm2, shape1=None, shape2=None, box=True,
+            sw=1, bw=2, sc=(150,150,150), bc=(0,0,255), bgc=(255,255,255)):
         """Draws two RMSMaps side-by-side.
 
         Args:
             rmsm1: the left RMSMap
             rmsm2: the right RMSMap
+            shape1: the shape (height,width) to give to the first RMSMap
+            shape2: the shape (height,width) to give to the second RMSMap
             box: if True, a bounding box will be drawn around the right map
             sw: segment line width
             bw: box line width
@@ -681,10 +685,18 @@ class RMSMatcher(object):
         dmap1 = rmsm1.dmap_origin
         dmap2 = rmsm2.dmap_origin
 
-        h_out = max(dmap1.img.shape[0], dmap2.img.shape[0])
-        w_out = dmap1.img.shape[1] + dmap2.img.shape[1]
-        w1 = dmap1.img.shape[1]
-        h2 = dmap2.img.shape[0]
+        if shape1 is None:
+            h1, w1 = dmap1.img.shape
+        else:
+            h1, w1 = shape1
+
+        if shape2 is None:
+            h2, w2 = dmap2.img.shape
+        else:
+            h2, w2 = shape2
+
+        h_out = max(h1, h2)
+        w_out = w1 + w2
         out = np.empty([h_out, w_out, 3], dtype=np.uint8)
         out[:,:] = bgc
         util.image.draw_segments(dmap1.roads, out, width=sw, color=sc)
